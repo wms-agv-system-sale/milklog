@@ -67,11 +67,8 @@ class CameraController(private val context: Context) {
                 provider = cameraProvider
                 binding = false
 
-                var ex = executor
-                if (ex == null) {
-                    ex = Executors.newSingleThreadExecutor()
-                    executor = ex
-                }
+                val analysisExecutor =
+                    executor ?: Executors.newSingleThreadExecutor().also { executor = it }
 
                 val preview = Preview.Builder()
                     .setTargetAspectRatio(AspectRatio.RATIO_16_9)
@@ -84,7 +81,7 @@ class CameraController(private val context: Context) {
                     .setTargetAspectRatio(AspectRatio.RATIO_16_9)
                     .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                     .build()
-                imageAnalysis.setAnalyzer(ex) { proxy ->
+                imageAnalysis.setAnalyzer(analysisExecutor) { proxy ->
                     try {
                         onFrame?.invoke(proxy)
                     } catch (t: Throwable) {

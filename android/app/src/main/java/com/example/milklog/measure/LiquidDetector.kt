@@ -88,7 +88,7 @@ object LiquidDetector {
                     val yIndex = ry * yRowStride + rx * yPixelStride
                     if (yIndex in 0 until yLimit) {
                         val luma = yBuf.get(yIndex).toInt() and 0xFF
-                        lumaSum[dy] += luma
+                        lumaSum[dy] = lumaSum[dy] + luma.toDouble()
                         sampleCount[dy]++
                         if (luma > 140) {
                             val cx = rx / 2
