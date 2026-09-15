@@ -139,32 +139,12 @@ enum class StatsRange {
             MONTH -> "月"
         }
 
-    val chartTitle: String
+    /** 周期名字，例如「今天」「本周」「本月」 */
+    val currentName: String
         get() = when (this) {
-            DAY -> "最近 14 天每日奶量"
-            WEEK -> "最近 8 周每周奶量"
-            MONTH -> "最近 6 个月每月奶量"
-        }
-
-    val averageTitle: String
-        get() = when (this) {
-            DAY -> "平均每天"
-            WEEK -> "平均每周"
-            MONTH -> "平均每月"
-        }
-
-    val peakTitle: String
-        get() = when (this) {
-            DAY -> "单日最高"
-            WEEK -> "单周最高"
-            MONTH -> "单月最高"
-        }
-
-    val bucketCount: Int
-        get() = when (this) {
-            DAY -> 14
-            WEEK -> 8
-            MONTH -> 6
+            DAY -> "今天"
+            WEEK -> "本周"
+            MONTH -> "本月"
         }
 
     val field: Int
@@ -173,25 +153,21 @@ enum class StatsRange {
             WEEK -> Calendar.WEEK_OF_YEAR
             MONTH -> Calendar.MONTH
         }
-
-    val axisFormat: String
-        get() = when (this) {
-            DAY -> "M/d"
-            WEEK -> "M/d"
-            MONTH -> "yy/M"
-        }
 }
 
+/** 一段时间（一天 / 一周 / 一月）的奶量汇总 */
 data class StatBucket(val start: Long, val totalML: Double, val count: Int) {
     val averagePerFeed: Double get() = if (count > 0) totalML / count.toDouble() else 0.0
 }
 
 object Stats {
-    private fun currentStart(range: StatsRange, now: Long): Long {
+
+    /** 某个时间点所属周期的起点：当天 0 点 / 本周第一天 / 本月 1 号 */
+    fun periodStart(range: StatsRange, time: Long): Long {
         val cal = Calendar.getInstance()
-        cal.timeInMillis = now
+        cal.timeInMillis = time
         return when (range) {
-            StatsRange.DAY -> DateText.dayStart(now)
+            StatsRange.DAY -> DateText.dayStart(time)
             StatsRange.WEEK -> {
                 cal.set(Calendar.DAY_OF_WEEK, cal.firstDayOfWeek)
                 DateText.dayStart(cal.timeInMillis)
@@ -203,34 +179,56 @@ object Stats {
         }
     }
 
-    fun spanStart(range: StatsRange, now: Long = System.currentTimeMillis()): Long {
+    /** 周期起点前后平移 delta 个周期，用来翻上一天 / 上一周 / 上一月 */
+    fun shift(range: StatsRange, start: Long, delta: Int): Long {
         val cal = Calendar.getInstance()
-        cal.timeInMillis = currentStart(range, now)
-        cal.add(range.field, -(range.bucketCount - 1))
-        return cal.timeInMillis
+        cal.timeInMillis = start
+        cal.add(range.field, delta)
+        return periodStart(range, cal.timeInMillis)
     }
 
-    fun buckets(range: StatsRange, feeds: List<FeedRecord>, now: Long = System.currentTimeMillis()): List<StatBucket> {
+    /** 周期结束时间（不含），也就是下一个周期的起点 */
+    fun periodEnd(range: StatsRange, start: Long): Long = shift(range, start, 1)
+
+    /** 后一天的 0 点 */
+    fun nextDay(dayStart: Long): Long {
         val cal = Calendar.getInstance()
-        cal.timeInMillis = currentStart(range, now)
-        val starts = ArrayList<Long>()
-        for (i in range.bucketCount - 1 downTo 0) {
-            val c = Calendar.getInstance()
-            c.timeInMillis = cal.timeInMillis
-            c.add(range.field, -i)
-            starts.add(c.timeInMillis)
-        }
+        cal.timeInMillis = dayStart
+        cal.add(Calendar.DAY_OF_YEAR, 1)
+        return DateText.dayStart(cal.timeInMillis)
+    }
+
+    /** 周期内的所有记录，按时间从早到晚排好 */
+    fun recordsIn(range: StatsRange, feeds: List<FeedRecord>, start: Long): List<FeedRecord> {
+        val end = periodEnd(range, start)
+        return feeds.filter { it.date >= start && it.date < end }.sortedBy { it.date }
+    }
+
+    /** 周期内每一天的汇总，没有记录的日子也会有一条（奶量为 0） */
+    fun dailyTotals(range: StatsRange, feeds: List<FeedRecord>, start: Long): List<StatBucket> {
+        val end = periodEnd(range, start)
         val result = ArrayList<StatBucket>()
-        for (start in starts) {
-            val c = Calendar.getInstance()
-            c.timeInMillis = start
-            c.add(range.field, 1)
-            val end = c.timeInMillis
-            val items = feeds.filter { it.date >= start && it.date < end }
-            val total = items.fold(0.0) { acc, item -> acc + item.volumeML }
-            result.add(StatBucket(start, total, items.size))
+        var cursor = DateText.dayStart(start)
+        while (cursor < end) {
+            val next = nextDay(cursor)
+            val items = feeds.filter { it.date >= cursor && it.date < next }
+            result.add(
+                StatBucket(
+                    start = cursor,
+                    totalML = items.fold(0.0) { acc, item -> acc + item.volumeML },
+                    count = items.size
+                )
+            )
+            cursor = next
         }
         return result
+    }
+
+    /** 记录落在周期时间轴上的位置（0~1），横轴按真实时间分布 */
+    fun position(start: Long, end: Long, date: Long): Float {
+        if (end <= start) return 0.5f
+        val ratio = (date - start).toDouble() / (end - start).toDouble()
+        return ratio.coerceIn(0.0, 1.0).toFloat()
     }
 }
 
