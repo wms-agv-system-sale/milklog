@@ -98,6 +98,11 @@ class AppStore(context: Context) {
         }
     }
 
+    fun updateSettings(newSettings: AppSettings) {
+        settings = newSettings
+        save()
+    }
+
     // MARK: - 记录
 
     fun add(record: FeedRecord) {
