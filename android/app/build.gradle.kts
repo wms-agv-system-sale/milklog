@@ -81,12 +81,4 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
     debugImplementation("androidx.compose.ui:ui-tooling")
 
-    val camerax = "1.3.4"
-    implementation("androidx.camera:camera-core:$camerax")
-    implementation("androidx.camera:camera-camera2:$camerax")
-    implementation("androidx.camera:camera-lifecycle:$camerax")
-    implementation("androidx.camera:camera-view:$camerax")
-
-    // 离线刻度数字识别（模型打包在 App 里，运行时不需要联网）
-    implementation("com.google.mlkit:text-recognition:16.0.0")
 }

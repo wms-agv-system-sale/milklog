@@ -1,12 +1,8 @@
 package com.example.milklog
 
-import android.Manifest
-import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,8 +13,6 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,17 +21,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
 import com.example.milklog.data.AppStore
-import com.example.milklog.measure.CameraController
-import com.example.milklog.measure.MeasurementEngine
 import com.example.milklog.model.FeedRecord
-import com.example.milklog.ui.CameraScreen
+import com.example.milklog.model.RecordSource
 import com.example.milklog.ui.HelpScreen
 import com.example.milklog.ui.MilkLogTheme
 import com.example.milklog.ui.RecordEditScreen
 import com.example.milklog.ui.SettingsScreen
 import com.example.milklog.ui.StatsScreen
+import com.example.milklog.ui.TodayScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -54,37 +46,11 @@ class MainActivity : ComponentActivity() {
 private fun MilkLogApp() {
     val context = LocalContext.current
     val store = remember { AppStore(context.applicationContext) }
-    val engine = remember { MeasurementEngine(CameraController(context.applicationContext)) }
 
     var tab by rememberSaveable { mutableStateOf(0) }
-    var hasPermission by remember {
-        mutableStateOf(
-            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
-        )
-    }
     var editing by remember { mutableStateOf<FeedRecord?>(null) }
     var editingIsNew by remember { mutableStateOf(false) }
     var showHelp by remember { mutableStateOf(false) }
-
-    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        hasPermission = granted
-        if (!granted) engine.camera.permissionDenied = true
-    }
-
-    // 不在记录页的时候关掉相机，省电
-    LaunchedEffect(tab, showHelp) {
-        if (!showHelp && tab != 0) {
-            engine.setTorch(false)
-            engine.camera.unbind()
-        }
-    }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            engine.setTorch(false)
-            engine.camera.unbind()
-        }
-    }
 
     Box(
         modifier = Modifier
@@ -120,13 +86,14 @@ private fun MilkLogApp() {
             ) { padding ->
                 Box(modifier = Modifier.padding(padding)) {
                     when (tab) {
-                        0 -> CameraScreen(
+                        0 -> TodayScreen(
                             store = store,
-                            engine = engine,
-                            hasPermission = hasPermission,
-                            onRequestPermission = { permissionLauncher.launch(Manifest.permission.CAMERA) },
-                            onEdit = { record, isNew ->
-                                editingIsNew = isNew
+                            onAdd = {
+                                editingIsNew = true
+                                editing = FeedRecord(volumeML = 0.0, source = RecordSource.MANUAL)
+                            },
+                            onEdit = { record ->
+                                editingIsNew = false
                                 editing = record
                             }
                         )

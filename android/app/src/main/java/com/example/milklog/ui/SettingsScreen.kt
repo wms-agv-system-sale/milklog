@@ -39,7 +39,7 @@ import androidx.core.content.FileProvider
 import com.example.milklog.data.AppStore
 import com.example.milklog.model.formatVolume
 
-/** 设置：目标、记录管理、说明。 */
+/** 设置：记录管理、说明。 */
 @Composable
 fun SettingsScreen(
     store: AppStore,
@@ -48,7 +48,6 @@ fun SettingsScreen(
     val context = LocalContext.current
     var confirmClear by remember { mutableStateOf(false) }
     var exportMessage by remember { mutableStateOf<String?>(null) }
-    var targetText by remember { mutableStateOf(formatVolume(store.settings.dailyTargetML)) }
 
     fun doExport() {
         val file = store.exportFile()
@@ -81,56 +80,10 @@ fun SettingsScreen(
             Text("设置", fontSize = 22.sp, fontWeight = FontWeight.Bold)
         }
 
-        item(key = "target") {
-            AppCard {
-                Column {
-                    SectionTitle("目标")
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("每日目标", fontSize = 14.sp)
-                        Spacer(Modifier.weight(1f))
-                        OutlinedTextField(
-                            value = targetText,
-                            onValueChange = { text ->
-                                targetText = text
-                                val parsed = text.toDoubleOrNull()
-                                if (parsed != null) {
-                                    store.updateSettings(
-                                        store.settings.copy(dailyTargetML = Math.max(0.0, Math.min(parsed, 2000.0)))
-                                    )
-                                }
-                            },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true,
-                            modifier = Modifier.width(110.dp)
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text("ml", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        "只影响统计图里的参考虚线，不会限制记录。",
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
-
         item(key = "records") {
             AppCard {
                 Column {
                     SectionTitle("记录")
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("保存识别时的照片", fontSize = 14.sp)
-                        Spacer(Modifier.weight(1f))
-                        Switch(
-                            checked = store.settings.keepPhotos,
-                            onCheckedChange = { value ->
-                                store.updateSettings(store.settings.copy(keepPhotos = value))
-                            }
-                        )
-                    }
-                    Spacer(Modifier.height(4.dp))
                     Text(
                         "导出全部记录",
                         fontSize = 14.sp,
@@ -173,13 +126,12 @@ fun SettingsScreen(
             AppCard {
                 Column {
                     SectionTitle("关于")
-                    InfoRow("识别方式", "读奶瓶上的刻度")
                     InfoRow("数据存储", "仅保存在本机")
                     InfoRow("联网", "完全不需要")
                     InfoRow("版本", "1.0")
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        "所有记录和照片都只保存在这台手机上，App 不含任何联网功能，也不会收集任何信息。",
+                        "所有记录都只保存在这台手机上，App 不含任何联网功能，也不会收集任何信息。",
                         fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

@@ -38,13 +38,6 @@ data class FeedRecord(
     val volumeText: String get() = formatVolume(volumeML)
 }
 
-data class AppSettings(
-    /** 每日目标奶量（ml），只用于图表参考线 */
-    val dailyTargetML: Double = 600.0,
-    /** 是否保存每次识别的照片 */
-    val keepPhotos: Boolean = true
-)
-
 /** 日 / 周 / 月 统计 */
 enum class StatsRange {
     DAY, WEEK, MONTH;

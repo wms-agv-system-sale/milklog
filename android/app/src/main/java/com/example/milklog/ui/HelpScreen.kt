@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -49,23 +48,22 @@ fun HelpScreen(onBack: () -> Unit) {
         item(key = "steps") {
             AppCard {
                 Column {
-                    Text("最快上手", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                    Text("三个步骤", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.height(10.dp))
-                    StepRow(1, "对准奶瓶", "把奶瓶放正，让瓶身上印的刻度数字落在画面中间的方框里，光线均匀。")
-                    StepRow(2, "按一下快门", "点中间圆形的「拍照」按钮。App 只会识别这一张照片（比实时画面准），一两秒出结果。")
-                    StepRow(3, "核对后保存", "照片上绿色虚线是识别到的液面、蓝线是读到的刻度位置。数值不对就用 -10 / +10 调整，或者点「重拍」重来。确认后点「保存记录」。")
-                    StepRow(4, "看统计", "在「统计」里切换日 / 周 / 月，看折线图了解奶量变化。")
+                    StepRow(1, "记一次喂奶", "在「记录」页，点最下面那个「＋ 记一次喂奶」。")
+                    StepRow(2, "填奶量", "输入奶量，或者点下面的常用数值、拖滑块来调，都是 10 ml 一档。时间默认是现在，可以在同一页改成别的时间。")
+                    StepRow(3, "保存", "点「保存」，这条就记下了。记错了在列表里点它，就能改数值或者删掉。")
                 }
             }
         }
 
-        item(key = "why") {
+        item(key = "stats") {
             AppCard {
                 Column {
-                    Text("识别是怎么做到的？", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                    Text("看统计", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        "不需要任何标定。刻度本来就印在奶瓶上，App 直接读这些数字，再加上牛奶液面的位置，就能算出奶量。所以换奶瓶、换位置都不用重新设置，拍照时让数字看得清就行。",
+                        "在「统计」页切换日 / 周 / 月：日视图是当天的每一次喂奶折线，周和月是这段时间里每一次喂奶的折线，再加上每天总奶量的折线，能看出奶量的变化趋势。",
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -76,13 +74,12 @@ fun HelpScreen(onBack: () -> Unit) {
         item(key = "tips") {
             AppCard {
                 Column {
-                    Text("让读数更准的小技巧", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                    Text("小技巧", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.height(8.dp))
-                    BulletRow("按快门之前手停稳一下，照片越清楚识别越准。")
-                    BulletRow("瓶身边缘尽量竖直，不要倾斜；背景简单一点（纯色墙面最好）。")
-                    BulletRow("光线均匀，别让灯光在瓶身上形成大片反光，可以用「补光」。")
-                    BulletRow("数字只读出一半时，稍微退后一点，让整排刻度都进画面再拍。")
-                    BulletRow("数值不合适就直接改：保存前用 -10 / +10，或者保存后进记录里改。")
+                    BulletRow("喂完马上记，顺手也就几秒。")
+                    BulletRow("想记昨天的奶，进「手动输入」的页面把时间改成昨天就行。")
+                    BulletRow("备注里可以写点别的，比如「喝了一半」「配方奶」。")
+                    BulletRow("统计页可以切换日 / 周 / 月，看奶量的变化趋势。")
                 }
             }
         }
@@ -92,11 +89,10 @@ fun HelpScreen(onBack: () -> Unit) {
                 Column {
                     Text("常见问题", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.height(8.dp))
-                    FaqRow("一定要联网吗？", "不需要。识别模型就在 App 里，识别和统计全部在手机上完成，这个 App 没有任何联网功能。")
-                    FaqRow("换奶瓶要重新设置吗？", "不用。只要瓶身上有刻度数字，直接拍就行。")
-                    FaqRow("识别不出来怎么办？", "点「重拍」再试一次：让刻度数字更清楚、瓶身放在画面中间、光线均匀。实在不行就点「手动输入」自己填。")
-                    FaqRow("读数差了 10ml 怎么办？", "用 -10 / +10 调一下再保存；也可以保存后进记录里改。")
-                    FaqRow("数据会丢吗？", "数据保存在本机。卸载 App 会一起删掉，建议偶尔在设置里用「导出全部记录」备份一份。")
+                    FaqRow("一定要联网吗？", "不需要，这个 App 没有任何联网功能。")
+                    FaqRow("换了手机会丢吗？", "会。数据只存在这台手机上，建议偶尔在设置里用「导出全部记录」备份一份。")
+                    FaqRow("卸载 App 会怎样？", "所有记录会一起删掉，卸载前记得先导出。")
+                    FaqRow("能记多胞胎吗？", "目前只有一份记录。需要分开记的话告诉开发者，可以加。")
                 }
             }
         }

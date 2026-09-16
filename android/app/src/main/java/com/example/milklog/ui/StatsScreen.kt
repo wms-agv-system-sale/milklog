@@ -168,8 +168,7 @@ fun StatsScreen(store: AppStore, onEdit: (FeedRecord) -> Unit) {
                 averagePerDay = averagePerDay,
                 bestDayML = bestDayML,
                 recordedDays = recordedDays,
-                dayCount = daily.size,
-                dailyTarget = store.settings.dailyTargetML
+                dayCount = daily.size
             )
         }
 
@@ -197,10 +196,8 @@ fun StatsScreen(store: AppStore, onEdit: (FeedRecord) -> Unit) {
                     subtitle = "共 " + daily.size + " 天，其中 " + recordedDays + " 天有记录",
                     points = dayPoints,
                     lineColor = ChartOrange,
-                    reference = store.settings.dailyTargetML,
-                    legend = if (store.settings.dailyTargetML > 0)
-                        "橙色虚线 = 每日目标 " + formatVolume(store.settings.dailyTargetML) + " ml（可在「设置」里改）"
-                    else "",
+                    reference = 0.0,
+                    legend = "",
                     xLabels = bucketLabels(daily),
                     emptyHint = "这段时间还没有喂奶记录"
                 )
@@ -381,8 +378,7 @@ private fun SummaryCard(
     averagePerDay: Double,
     bestDayML: Double,
     recordedDays: Int,
-    dayCount: Int,
-    dailyTarget: Double
+    dayCount: Int
 ) {
     AppCard {
         Column {
@@ -416,48 +412,7 @@ private fun SummaryCard(
                 )
             }
             Spacer(Modifier.height(14.dp))
-            if (range == StatsRange.DAY) {
-                val ratio = if (dailyTarget > 0) (totalML / dailyTarget).coerceIn(0.0, 1.0) else 0.0
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        "每日目标",
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.weight(1f))
-                    Text(
-                        if (dailyTarget > 0)
-                            formatVolume(totalML) + " / " + formatVolume(dailyTarget) + " ml"
-                        else "未设置",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-                Spacer(Modifier.height(6.dp))
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(50))
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(ratio.toFloat())
-                            .height(8.dp)
-                            .clip(RoundedCornerShape(50))
-                            .background(MaterialTheme.colorScheme.primary)
-                    )
-                }
-                if (dailyTarget > 0) {
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        "已完成 " + Math.round(ratio * 100) + "%",
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            } else {
+            if (range != StatsRange.DAY) {
                 Row {
                     MetricTile(
                         title = "日均",

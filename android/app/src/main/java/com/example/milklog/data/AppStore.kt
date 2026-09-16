@@ -6,7 +6,6 @@ import android.graphics.BitmapFactory
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import com.example.milklog.model.AppSettings
 import com.example.milklog.model.DateText
 import com.example.milklog.model.FeedRecord
 import com.example.milklog.model.RecordSource
@@ -24,9 +23,6 @@ class AppStore(context: Context) {
     private val dataFile: File = File(rootDir, "data.json")
 
     var feeds by mutableStateOf<List<FeedRecord>>(emptyList())
-        private set
-
-    var settings by mutableStateOf(AppSettings())
         private set
 
     init {
@@ -58,13 +54,6 @@ class AppStore(context: Context) {
             }
             feeds = loadedFeeds.sortedBy { it.date }
 
-            val s = root.optJSONObject("settings")
-            if (s != null) {
-                settings = AppSettings(
-                    dailyTargetML = s.optDouble("dailyTargetML", 600.0),
-                    keepPhotos = s.optBoolean("keepPhotos", true)
-                )
-            }
         } catch (e: Exception) {
             // 数据损坏时保持空状态，不崩溃
         }
@@ -87,20 +76,10 @@ class AppStore(context: Context) {
             }
             root.put("feeds", feedsArr)
 
-            val s = JSONObject()
-            s.put("dailyTargetML", settings.dailyTargetML)
-            s.put("keepPhotos", settings.keepPhotos)
-            root.put("settings", s)
-
             dataFile.writeText(root.toString(), Charsets.UTF_8)
         } catch (e: Exception) {
             // 忽略写入失败
         }
-    }
-
-    fun updateSettings(newSettings: AppSettings) {
-        settings = newSettings
-        save()
     }
 
     // MARK: - 记录
