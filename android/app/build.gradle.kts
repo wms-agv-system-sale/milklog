@@ -86,4 +86,7 @@ dependencies {
     implementation("androidx.camera:camera-camera2:$camerax")
     implementation("androidx.camera:camera-lifecycle:$camerax")
     implementation("androidx.camera:camera-view:$camerax")
+
+    // 离线刻度数字识别（模型打包在 App 里，运行时不需要联网）
+    implementation("com.google.mlkit:text-recognition:16.0.0")
 }

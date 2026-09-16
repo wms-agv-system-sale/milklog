@@ -51,9 +51,9 @@ fun HelpScreen(onBack: () -> Unit) {
                 Column {
                     Text("最快上手", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.height(10.dp))
-                    StepRow(1, "标定奶瓶", "给奶瓶倒入一个已知奶量（例如 120ml），放进画面，点「识别并记录」。换 1~2 个不同奶量再记录一次，至少 2 个点。")
-                    StepRow(2, "固定位置", "把手机放在支架上，或者每次都用同一个姿势、同一个距离。奶瓶每次放在同一个点上。")
-                    StepRow(3, "日常使用", "打开 App 对准奶瓶，画面上的黄线就是液面位置，下面的大数字就是奶量。稳定后点「保存记录」。")
+                    StepRow(1, "对准奶瓶", "把奶瓶放正，瓶身上印的刻度数字正对镜头，尽量让瓶子占满画面中间，光线均匀。")
+                    StepRow(2, "等它自己读", "App 先读出瓶身上的刻度数字（比如 100、50），再找到牛奶的液面，算出奶量。画面上的蓝线是读到的刻度位置，虚线是识别到的液面。")
+                    StepRow(3, "核对后保存", "数值不合适时用 -10 / +10 调整，或者点「手动输入」直接填。确认后点「保存记录」。")
                     StepRow(4, "看统计", "在「统计」里切换日 / 周 / 月，看折线图了解奶量变化。")
                 }
             }
@@ -62,10 +62,10 @@ fun HelpScreen(onBack: () -> Unit) {
         item(key = "why") {
             AppCard {
                 Column {
-                    Text("为什么需要标定？", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                    Text("识别是怎么做到的？", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        "每个人手机离奶瓶的远近、角度都不一样，同样的液面高度对应的毫升数也不同。标定就是用几个已知奶量，让 App 学会「这个高度等于多少毫升」。标定好之后，只要保持手机和奶瓶的相对位置不变，读数就会一直准。",
+                        "不需要任何标定。刻度本来就印在奶瓶上，App 直接读这些数字，再加上牛奶液面的位置，就能算出奶量。所以换奶瓶、换位置都不用重新设置，拍照时让数字看得清就行。",
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -78,12 +78,11 @@ fun HelpScreen(onBack: () -> Unit) {
                 Column {
                     Text("让读数更准的小技巧", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.height(8.dp))
-                    BulletRow("手机尽量固定：用支架、靠墙，或者每次在同一个高度拍摄。")
-                    BulletRow("画面里让瓶身占中间，背景尽量简单（纯色墙面最好）。")
-                    BulletRow("光线均匀。逆光或强烈反光会影响识别，可以开闪光灯当补光灯。")
-                    BulletRow("奶瓶放正，不要倾斜。")
-                    BulletRow("如果识别总是不准，把标定里的「取样区域」虚线框收窄到刚好罩住瓶身。")
-                    BulletRow("数值不合适时，保存前直接改：点「保存记录」后可以滑动调整到实际奶量。")
+                    BulletRow("把瓶身上的刻度数字拍清楚：数字占满画面中间、别太小。")
+                    BulletRow("瓶身边缘尽量竖直，不要倾斜；背景简单一点（纯色墙面最好）。")
+                    BulletRow("光线均匀，别让灯光在瓶身上形成大片反光，可以用「补光」。")
+                    BulletRow("数字只读出一半时，稍微退后一点，让整排刻度都进画面。")
+                    BulletRow("数值不合适就直接改：保存前用 -10 / +10，或者保存后进记录里改。")
                 }
             }
         }
@@ -93,10 +92,10 @@ fun HelpScreen(onBack: () -> Unit) {
                 Column {
                     Text("常见问题", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.height(8.dp))
-                    FaqRow("一定要联网吗？", "不需要。识别、统计全部在手机上完成，这个 App 没有任何联网功能。")
-                    FaqRow("能识别两种不同的奶瓶吗？", "可以。在设置里给每个奶瓶分别标定，使用时切换当前奶瓶即可。")
-                    FaqRow("换了手机位置怎么办？", "重新标定一次，或者在统计里点开某条记录，把数值改成实际奶量。")
-                    FaqRow("识别结果是 -- ？", "说明画面里没有找到液面。检查：奶瓶是否在虚线框内、光线是否足够、奶量是否太少（低于标定范围）。")
+                    FaqRow("一定要联网吗？", "不需要。识别模型就在 App 里，识别和统计全部在手机上完成，这个 App 没有任何联网功能。")
+                    FaqRow("换奶瓶要重新设置吗？", "不用。只要瓶身上有刻度数字，直接拍就行。")
+                    FaqRow("识别结果是 -- ？", "说明画面里没找到液面或者没读到刻度数字。检查：刻度数字是否清楚、瓶身是否在画面中间、光线是否够、瓶里的奶是不是太少。")
+                    FaqRow("读数差了 10ml 怎么办？", "用 -10 / +10 调一下再保存；也可以保存后进记录里改。")
                     FaqRow("数据会丢吗？", "数据保存在本机。卸载 App 会一起删掉，建议偶尔在设置里用「导出全部记录」备份一份。")
                 }
             }

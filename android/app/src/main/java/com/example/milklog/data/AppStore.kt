@@ -7,8 +7,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.example.milklog.model.AppSettings
-import com.example.milklog.model.BottleProfile
-import com.example.milklog.model.CalibrationPoint
 import com.example.milklog.model.DateText
 import com.example.milklog.model.FeedRecord
 import com.example.milklog.model.RecordSource
@@ -26,12 +24,6 @@ class AppStore(context: Context) {
     private val dataFile: File = File(rootDir, "data.json")
 
     var feeds by mutableStateOf<List<FeedRecord>>(emptyList())
-        private set
-
-    var bottles by mutableStateOf<List<BottleProfile>>(emptyList())
-        private set
-
-    var activeBottleId by mutableStateOf<String?>(null)
         private set
 
     var settings by mutableStateOf(AppSettings())
@@ -66,37 +58,6 @@ class AppStore(context: Context) {
             }
             feeds = loadedFeeds.sortedBy { it.date }
 
-            val bottlesArr = root.optJSONArray("bottles") ?: JSONArray()
-            val loadedBottles = ArrayList<BottleProfile>()
-            for (i in 0 until bottlesArr.length()) {
-                val o = bottlesArr.optJSONObject(i) ?: continue
-                val ptsArr = o.optJSONArray("points") ?: JSONArray()
-                val pts = ArrayList<CalibrationPoint>()
-                for (j in 0 until ptsArr.length()) {
-                    val p = ptsArr.optJSONObject(j) ?: continue
-                    pts.add(
-                        CalibrationPoint(
-                            id = p.optString("id", newId()),
-                            volumeML = p.optDouble("volumeML", 0.0),
-                            y = p.optDouble("y", 0.0)
-                        )
-                    )
-                }
-                loadedBottles.add(
-                    BottleProfile(
-                        id = o.optString("id", newId()),
-                        name = o.optString("name", "我的奶瓶"),
-                        points = pts,
-                        bandLeft = o.optDouble("bandLeft", 0.32),
-                        bandRight = o.optDouble("bandRight", 0.68)
-                    )
-                )
-            }
-            bottles = loadedBottles
-
-            val active = root.optString("activeBottleId", "")
-            activeBottleId = if (active.isEmpty()) bottles.firstOrNull()?.id else active
-
             val s = root.optJSONObject("settings")
             if (s != null) {
                 settings = AppSettings(
@@ -126,27 +87,6 @@ class AppStore(context: Context) {
             }
             root.put("feeds", feedsArr)
 
-            val bottlesArr = JSONArray()
-            for (b in bottles) {
-                val o = JSONObject()
-                o.put("id", b.id)
-                o.put("name", b.name)
-                o.put("bandLeft", b.bandLeft)
-                o.put("bandRight", b.bandRight)
-                val ptsArr = JSONArray()
-                for (p in b.points) {
-                    val po = JSONObject()
-                    po.put("id", p.id)
-                    po.put("volumeML", p.volumeML)
-                    po.put("y", p.y)
-                    ptsArr.put(po)
-                }
-                o.put("points", ptsArr)
-                bottlesArr.put(o)
-            }
-            root.put("bottles", bottlesArr)
-            root.put("activeBottleId", activeBottleId ?: "")
-
             val s = JSONObject()
             s.put("dailyTargetML", settings.dailyTargetML)
             s.put("keepPhotos", settings.keepPhotos)
@@ -156,40 +96,6 @@ class AppStore(context: Context) {
         } catch (e: Exception) {
             // 忽略写入失败
         }
-    }
-
-    // MARK: - 奶瓶
-
-    val activeBottle: BottleProfile?
-        get() {
-            val id = activeBottleId
-            if (id == null) return bottles.firstOrNull()
-            return bottles.firstOrNull { it.id == id } ?: bottles.firstOrNull()
-        }
-
-    fun upsert(bottle: BottleProfile) {
-        val list = bottles.toMutableList()
-        val index = list.indexOfFirst { it.id == bottle.id }
-        if (index >= 0) list[index] = bottle else list.add(bottle)
-        bottles = list
-        if (activeBottleId == null) activeBottleId = bottle.id
-        save()
-    }
-
-    fun deleteBottle(bottleId: String) {
-        bottles = bottles.filter { it.id != bottleId }
-        if (activeBottleId == bottleId) activeBottleId = bottles.firstOrNull()?.id
-        save()
-    }
-
-    fun setActiveBottle(id: String?) {
-        activeBottleId = id
-        save()
-    }
-
-    fun updateSettings(newSettings: AppSettings) {
-        settings = newSettings
-        save()
     }
 
     // MARK: - 记录

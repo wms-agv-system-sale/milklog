@@ -31,9 +31,7 @@ import androidx.core.content.ContextCompat
 import com.example.milklog.data.AppStore
 import com.example.milklog.measure.CameraController
 import com.example.milklog.measure.MeasurementEngine
-import com.example.milklog.model.BottleProfile
 import com.example.milklog.model.FeedRecord
-import com.example.milklog.ui.CalibrationScreen
 import com.example.milklog.ui.CameraScreen
 import com.example.milklog.ui.HelpScreen
 import com.example.milklog.ui.MilkLogTheme
@@ -66,7 +64,6 @@ private fun MilkLogApp() {
     }
     var editing by remember { mutableStateOf<FeedRecord?>(null) }
     var editingIsNew by remember { mutableStateOf(false) }
-    var calibration by remember { mutableStateOf<BottleProfile?>(null) }
     var showHelp by remember { mutableStateOf(false) }
 
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -75,8 +72,8 @@ private fun MilkLogApp() {
     }
 
     // 不在记录页的时候关掉相机，省电
-    LaunchedEffect(tab, calibration, showHelp) {
-        if (calibration == null && !showHelp && tab != 0) {
+    LaunchedEffect(tab, showHelp) {
+        if (!showHelp && tab != 0) {
             engine.setTorch(false)
             engine.camera.unbind()
         }
@@ -94,22 +91,7 @@ private fun MilkLogApp() {
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        val bottleForCalibration = calibration
         when {
-            bottleForCalibration != null -> CalibrationScreen(
-                store = store,
-                engine = engine,
-                bottle = bottleForCalibration,
-                onSave = { saved ->
-                    store.upsert(saved)
-                    store.setActiveBottle(saved.id)
-                    engine.clearBand()
-                    engine.profile = saved
-                    calibration = null
-                },
-                onCancel = { calibration = null }
-            )
-
             showHelp -> HelpScreen(onBack = { showHelp = false })
 
             else -> Scaffold(
@@ -143,7 +125,6 @@ private fun MilkLogApp() {
                             engine = engine,
                             hasPermission = hasPermission,
                             onRequestPermission = { permissionLauncher.launch(Manifest.permission.CAMERA) },
-                            onOpenCalibration = { calibration = store.activeBottle ?: BottleProfile() },
                             onEdit = { record, isNew ->
                                 editingIsNew = isNew
                                 editing = record
@@ -160,7 +141,6 @@ private fun MilkLogApp() {
 
                         else -> SettingsScreen(
                             store = store,
-                            onEditBottle = { bottle -> calibration = bottle },
                             onOpenHelp = { showHelp = true }
                         )
                     }

@@ -1,7 +1,5 @@
 package com.example.milklog.ui
 
-import android.Manifest
-import android.content.pm.PackageManager
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -24,7 +22,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,31 +30,28 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.content.ContextCompat
 import com.example.milklog.data.AppStore
 import com.example.milklog.measure.MeasurementEngine
+import com.example.milklog.measure.ScaleMark
 import com.example.milklog.model.FeedRecord
 import com.example.milklog.model.RecordSource
 import com.example.milklog.model.formatVolume
 
-/** 主界面：对着奶瓶，自动读出当前奶量。 */
+/** 主界面：对着奶瓶拍，自动读出奶量。 */
 @Composable
 fun CameraScreen(
     store: AppStore,
     engine: MeasurementEngine,
     hasPermission: Boolean,
     onRequestPermission: () -> Unit,
-    onOpenCalibration: () -> Unit,
     onEdit: (FeedRecord, Boolean) -> Unit
 ) {
     val context = LocalContext.current
@@ -70,13 +64,6 @@ fun CameraScreen(
     }
     var pendingVolume by remember { mutableStateOf<Double?>(null) }
 
-    val profile = store.activeBottle
-    val isCalibrated = profile?.isReady == true
-
-    LaunchedEffect(profile) {
-        engine.profile = profile
-    }
-
     if (hasPermission) {
         DisposableEffect(previewView, lifecycleOwner) {
             engine.camera.bindPreview(previewView, lifecycleOwner)
@@ -84,19 +71,8 @@ fun CameraScreen(
         }
     }
 
-    val currentVolume: Double? = remember(
-        pendingVolume,
-        engine.settledVolume,
-        engine.detection
-    ) {
-        val pending = pendingVolume
-        if (pending != null && pending > 0) return@remember pending
-        val settled = engine.settledVolume
-        if (settled != null) return@remember settled
-        val live = engine.detection
-        if (live != null && live.found && live.volumeML != null) return@remember live.volumeML
-        null
-    }
+    val currentVolume: Double? = pendingVolume ?: engine.volumeML
+    val marks = if (engine.fittedMarks.isNotEmpty()) engine.fittedMarks else engine.marks
 
     Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
 
@@ -125,25 +101,25 @@ fun CameraScreen(
             )
 
             Canvas(modifier = Modifier.fillMaxSize()) {
-                val frameW = engine.frameSize.width.toFloat()
-                val frameH = engine.frameSize.height.toFloat()
-                val geo = PreviewGeometry(frameW, frameH, size.width, size.height)
-                val left = profile?.bandLeft ?: 0.32
-                val right = profile?.bandRight ?: 0.68
-                val x0 = geo.bandLeftX(left)
-                val x1 = geo.bandRightX(right)
-                val top = geo.bandTop()
-                val bottom = geo.bandBottom()
-
-                drawRect(
-                    color = Color.White.copy(alpha = 0.06f),
-                    topLeft = Offset(x0, top),
-                    size = Size(Math.max(0f, x1 - x0), Math.max(0f, bottom - top))
+                val geo = PreviewGeometry(
+                    engine.frameSize.width.toFloat(),
+                    engine.frameSize.height.toFloat(),
+                    size.width,
+                    size.height
                 )
-                val dash = PathEffect.dashPathEffect(floatArrayOf(20f, 16f), 0f)
-                drawLine(Color.White.copy(alpha = 0.5f), Offset(x0, top), Offset(x0, bottom), strokeWidth = 4f, pathEffect = dash)
-                drawLine(Color.White.copy(alpha = 0.5f), Offset(x1, top), Offset(x1, bottom), strokeWidth = 4f, pathEffect = dash)
 
+                // 读到的刻度数字所在的高度，用蓝色细线标出来
+                for (mark in marks) {
+                    val y = geo.pointY(mark.y)
+                    drawLine(
+                        color = Color(0xFF6EC6FF).copy(alpha = 0.55f),
+                        start = Offset(size.width * 0.05f, y),
+                        end = Offset(size.width * 0.95f, y),
+                        strokeWidth = 2f
+                    )
+                }
+
+                // 识别到的液面
                 val detection = engine.detection
                 if (detection != null && detection.found) {
                     val y = geo.pointY(detection.surfaceY)
@@ -162,23 +138,23 @@ fun CameraScreen(
                 TopBar(store, engine)
                 Spacer(Modifier.weight(1f))
                 BottomPanel(
-                    store = store,
                     engine = engine,
-                    profileName = profile?.name,
-                    isCalibrated = isCalibrated,
+                    marks = marks,
                     currentVolume = currentVolume,
                     pendingVolume = pendingVolume,
                     onAdjust = { delta ->
-                        val base = pendingVolume ?: engine.settledVolume ?: 0.0
+                        val base = pendingVolume ?: engine.volumeML ?: 0.0
                         pendingVolume = Math.max(0.0, base + delta)
                     },
                     onManual = {
                         onEdit(
-                            FeedRecord(volumeML = 90.0, source = RecordSource.MANUAL),
+                            FeedRecord(
+                                volumeML = currentVolume ?: 60.0,
+                                source = RecordSource.MANUAL
+                            ),
                             true
                         )
                     },
-                    onCalibrate = onOpenCalibration,
                     onSave = {
                         val volume = currentVolume
                         if (volume != null && volume > 0) {
@@ -251,15 +227,12 @@ private fun CircleButton(label: String, highlighted: Boolean, onClick: () -> Uni
 
 @Composable
 private fun BottomPanel(
-    store: AppStore,
     engine: MeasurementEngine,
-    profileName: String?,
-    isCalibrated: Boolean,
+    marks: List<ScaleMark>,
     currentVolume: Double?,
     pendingVolume: Double?,
     onAdjust: (Double) -> Unit,
     onManual: () -> Unit,
-    onCalibrate: () -> Unit,
     onSave: () -> Unit
 ) {
     Column(
@@ -269,30 +242,10 @@ private fun BottomPanel(
             .background(MaterialTheme.colorScheme.surface)
             .padding(16.dp)
     ) {
-        if (!isCalibrated) {
-            Text(
-                "还没标定奶瓶",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color(0xFFE07B00)
-            )
-            Spacer(Modifier.height(6.dp))
-            Text(
-                "先用 2~3 个已知奶量（比如 60ml、120ml、180ml）标定一次，之后每次把奶瓶放到固定位置，App 就能自动读出奶量。",
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedButton(onClick = onManual, modifier = Modifier.weight(1f)) { Text("手动输入") }
-                Button(onClick = onCalibrate, modifier = Modifier.weight(1f)) { Text("开始标定") }
-            }
-            return@Column
-        }
-
         Row(verticalAlignment = Alignment.Bottom) {
+            val shown = pendingVolume ?: currentVolume
             Text(
-                text = if (pendingVolume != null) formatVolume(pendingVolume) else settledText(engine),
+                text = if (shown == null) "--" else formatVolume(shown),
                 fontSize = 54.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
@@ -307,29 +260,28 @@ private fun BottomPanel(
             Spacer(Modifier.weight(1f))
             if (currentVolume != null) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SmallAdjustButton("-5") { onAdjust(-5.0) }
-                    SmallAdjustButton("+5") { onAdjust(5.0) }
+                    SmallAdjustButton("-10") { onAdjust(-10.0) }
+                    SmallAdjustButton("+10") { onAdjust(10.0) }
                 }
             }
         }
 
-        Spacer(Modifier.height(6.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            if (profileName != null) {
-                Text(profileName, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.width(8.dp))
-            }
-            if (currentVolume != null && currentVolume > 0) {
-                if (engine.isStable) {
-                    StatusPill(if (pendingVolume == null) "读数稳定" else "已手动调整", Color(0xFF2E7D32))
-                } else {
-                    StatusPill("识别中…", Color(0xFFE07B00))
-                }
-            } else {
-                StatusPill("请把奶瓶放进虚线框内", MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Spacer(Modifier.weight(1f))
-            Text("标定", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary, modifier = Modifier.clickableNoRipple { onCalibrate() })
+        Spacer(Modifier.height(8.dp))
+        StatusPill(statusText(engine, marks), statusColor(engine, marks))
+
+        Spacer(Modifier.height(8.dp))
+        if (marks.isNotEmpty()) {
+            Text(
+                "读到的刻度：" + marks.joinToString(" / ") { formatVolume(it.valueML) } + " ml",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        } else {
+            Text(
+                "还没读到刻度数字：把奶瓶凑近些，让瓶身上的数字正对镜头、占满画面中间。",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
 
         Spacer(Modifier.height(12.dp))
@@ -344,12 +296,22 @@ private fun BottomPanel(
     }
 }
 
-private fun settledText(engine: MeasurementEngine): String {
-    val settled = engine.settledVolume
-    if (settled != null) return formatVolume(settled)
-    val live = engine.detection
-    if (live != null && live.found && live.volumeML != null) return formatVolume(live.volumeML!!)
-    return "--"
+private fun statusText(engine: MeasurementEngine, marks: List<ScaleMark>): String {
+    return when {
+        engine.volumeML != null && engine.isStable -> "读数稳定"
+        engine.volumeML != null -> "识别中…"
+        marks.size >= 2 -> "正在找液面…"
+        marks.size == 1 -> "只读到一个刻度，稍微退后一点拍全"
+        else -> "正在找瓶身上的刻度数字…"
+    }
+}
+
+private fun statusColor(engine: MeasurementEngine, marks: List<ScaleMark>): Color {
+    return when {
+        engine.volumeML == null -> Color(0xFFE07B00)
+        engine.isStable -> Color(0xFF2E7D32)
+        else -> Color(0xFFE07B00)
+    }
 }
 
 @Composable
@@ -362,6 +324,6 @@ private fun SmallAdjustButton(label: String, onClick: () -> Unit) {
             .clickableNoRipple { onClick() },
         contentAlignment = Alignment.Center
     ) {
-        Text(label, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+        Text(label, fontSize = 14.sp, fontWeight = FontWeight.Bold)
     }
 }

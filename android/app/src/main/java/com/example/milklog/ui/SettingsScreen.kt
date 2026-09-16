@@ -37,17 +37,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import com.example.milklog.data.AppStore
-import com.example.milklog.model.BottleProfile
-import androidx.compose.ui.graphics.Color
 import com.example.milklog.model.formatVolume
 
-private val SettingsOrange = Color(0xFFE07B00)
-
-/** 设置：奶瓶与标定、目标、记录管理、说明。 */
+/** 设置：目标、记录管理、说明。 */
 @Composable
 fun SettingsScreen(
     store: AppStore,
-    onEditBottle: (BottleProfile) -> Unit,
     onOpenHelp: () -> Unit
 ) {
     val context = LocalContext.current
@@ -84,44 +79,6 @@ fun SettingsScreen(
     ) {
         item(key = "title") {
             Text("设置", fontSize = 22.sp, fontWeight = FontWeight.Bold)
-        }
-
-        item(key = "bottles") {
-            AppCard {
-                Column {
-                    SectionTitle("奶瓶与标定")
-                    if (store.bottles.isEmpty()) {
-                        Text(
-                            "还没有奶瓶，先添加一个并完成标定。",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(Modifier.height(6.dp))
-                    }
-                    store.bottles.forEach { bottle ->
-                        BottleRow(
-                            bottle = bottle,
-                            isActive = store.activeBottleId == bottle.id
-                        ) { onEditBottle(bottle) }
-                    }
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        "＋ 添加奶瓶",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier
-                            .clickableNoRipple { onEditBottle(BottleProfile()) }
-                            .padding(vertical = 6.dp)
-                    )
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        "标定只需要做一次。之后把奶瓶放在同一个位置，App 就能自动读出奶量。",
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
         }
 
         item(key = "target") {
@@ -216,12 +173,13 @@ fun SettingsScreen(
             AppCard {
                 Column {
                     SectionTitle("关于")
+                    InfoRow("识别方式", "读奶瓶上的刻度")
                     InfoRow("数据存储", "仅保存在本机")
                     InfoRow("联网", "完全不需要")
                     InfoRow("版本", "1.0")
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        "所有记录、照片和标定数据都只保存在这台手机上，App 不含任何联网功能，也不会收集任何信息。",
+                        "所有记录和照片都只保存在这台手机上，App 不含任何联网功能，也不会收集任何信息。",
                         fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -259,46 +217,6 @@ fun SettingsScreen(
                 TextButton(onClick = { exportMessage = null }) { Text("好") }
             }
         )
-    }
-}
-
-@Composable
-private fun BottleRow(bottle: BottleProfile, isActive: Boolean, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickableNoRipple { onClick() }
-            .padding(vertical = 9.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .width(4.dp)
-                .height(28.dp)
-                .clip(RoundedCornerShape(50))
-                .background(
-                    if (isActive) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
-                )
-        )
-        Spacer(Modifier.width(10.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                bottle.name,
-                fontSize = 15.sp,
-                fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal
-            )
-            Text(
-                if (bottle.isReady) "已标定 " + bottle.points.size + " 个点" else "未完成标定",
-                fontSize = 11.sp,
-                color = if (bottle.isReady) MaterialTheme.colorScheme.onSurfaceVariant else SettingsOrange
-            )
-        }
-        if (isActive) {
-            Text("当前", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
-        }
-        Spacer(Modifier.width(6.dp))
-        Text("›", fontSize = 18.sp, color = MaterialTheme.colorScheme.outline)
     }
 }
 

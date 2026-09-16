@@ -42,6 +42,7 @@ import com.example.milklog.data.AppStore
 import com.example.milklog.model.DateText
 import com.example.milklog.model.FeedRecord
 import com.example.milklog.model.formatVolume
+import com.example.milklog.model.roundToTen
 import java.util.Calendar
 
 /** 确认 / 修改一条记录。识别结果可以在这里按实际情况改数值。 */
@@ -58,7 +59,7 @@ fun RecordEditScreen(
     var calMillis by remember { mutableStateOf(record.date) }
     var confirmDelete by remember { mutableStateOf(false) }
 
-    val quick = listOf(30.0, 60.0, 90.0, 120.0, 150.0, 180.0, 210.0, 240.0)
+    val quick = (1..20).map { it * 10.0 }
 
     Box(
         modifier = Modifier
@@ -105,7 +106,7 @@ fun RecordEditScreen(
                     Slider(
                         value = Math.min(volume, 300.0).toFloat(),
                         onValueChange = { value ->
-                            volume = value.toDouble()
+                            volume = roundToTen(value.toDouble())
                             volumeText = formatVolume(volume)
                         },
                         valueRange = 0f..300f
